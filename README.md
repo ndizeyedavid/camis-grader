@@ -198,5 +198,5 @@ window you can see. Do not commit exported marks or reports to this repository; 
 
 ## License
 
-Free to use by teachers and schools. Provided as is, without warranty. Always review marks in
-CAMIS before submitting them.
+Released under the [MIT License](LICENSE). Provided as is, without warranty. Always review marks
+in CAMIS before submitting them.
