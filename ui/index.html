@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CAMIS Marks</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --panel: #111111;
+    --el: #181818;
+    --el-hover: #202020;
+    --border: #242424;
+    --border-strong: #363636;
+    --text: #ededed;
+    --muted: #8b8b8b;
+    --dim: #5c5c5c;
+    --accent: #fab283;
+    --accent-hover: #ffc49e;
+    --accent-ink: #1c1206;
+    --accent-soft: rgba(250, 178, 131, 0.08);
+    --green: #7fd88f;
+    --green-soft: rgba(127, 216, 143, 0.08);
+    --red: #e06c75;
+    --red-soft: rgba(224, 108, 117, 0.08);
+    --yellow: #e5c07b;
+    --yellow-soft: rgba(229, 192, 123, 0.08);
+    --mono: "Cascadia Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.5 var(--mono);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border: 3px solid var(--bg); border-radius: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* ---------- top bar ---------- */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 48px; padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    flex: none;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 15px; letter-spacing: -0.02em; }
+  .brand .glyph {
+    width: 18px; height: 18px; border: 2px solid var(--text); border-radius: 3px; position: relative;
+  }
+  .brand .glyph::after {
+    content: ""; position: absolute; left: 3px; right: 3px; bottom: 3px; height: 4px; background: var(--accent);
+  }
+  .brand b { font-weight: 700; }
+  .brand span { color: var(--dim); font-weight: 700; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
+  .dot.on { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+  .dot.busy { background: var(--yellow); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+
+  /* ---------- stepper ---------- */
+  .steps {
+    display: flex; align-items: center; gap: 14px;
+    padding: 18px 0 26px; color: var(--dim); font-size: 12px;
+  }
+  .step { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .step .n { color: var(--dim); }
+  .step.active { color: var(--text); }
+  .step.active .n { color: var(--accent); }
+  .step.done { color: var(--muted); }
+  .step.done .n { color: var(--green); }
+  .rule { flex: 1; height: 1px; background: var(--border); min-width: 24px; }
+
+  /* ---------- main ---------- */
+  main { flex: 1; overflow-y: auto; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 28px 40px; }
+  h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .lead { font-family: var(--sans); color: var(--muted); font-size: 14px; margin: 0 0 22px; }
+  .label { color: var(--dim); font-size: 11px; text-transform: lowercase; letter-spacing: .04em; margin: 26px 0 10px; }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+
+  /* drop zone */
+  .drop {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    height: 200px; border: 1px dashed var(--border-strong); border-radius: 8px;
+    background: var(--panel); cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .drop:hover, body.dragging .drop { border-color: var(--accent); background: var(--accent-soft); }
+  .drop .big { font-size: 15px; }
+  .drop .small { color: var(--muted); font-family: var(--sans); font-size: 13px; }
+  .drop .arrow { color: var(--accent); font-size: 22px; line-height: 1; margin-bottom: 6px; }
+
+  .list { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .row {
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+    border-top: 1px solid var(--border); background: var(--panel);
+  }
+  .row:first-child { border-top: 0; }
+  .row.click { cursor: pointer; }
+  .row.click:hover { background: var(--el-hover); }
+  .row .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .meta { color: var(--dim); font-size: 12px; white-space: nowrap; }
+  .chev { color: var(--dim); }
+  .row.click:hover .chev { color: var(--accent); }
+
+  /* key/value file card */
+  .card { padding: 16px 18px; }
+  .card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .card-head .name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kv { display: grid; grid-template-columns: 120px 1fr; row-gap: 6px; }
+  .kv .k { color: var(--dim); }
+  .kv .v { color: var(--text); }
+
+  /* buttons */
+  .btn {
+    font: inherit; border: 1px solid var(--border-strong); background: var(--el); color: var(--text);
+    height: 34px; padding: 0 14px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:hover { background: var(--el-hover); border-color: var(--dim); }
+  .btn.primary {
+    background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+    font-weight: 700; height: 44px; padding: 0 22px; font-size: 14px;
+  }
+  .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 0 8px; }
+  .btn.ghost:hover { color: var(--text); background: var(--el); }
+  .btn kbd { font: inherit; font-size: 11px; opacity: .6; font-weight: 400; }
+  .actions { display: flex; align-items: center; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+  .hint { font-family: var(--sans); color: var(--muted); font-size: 13px; margin-top: 12px; }
+
+  /* callouts */
+  .note {
+    display: flex; gap: 10px; padding: 11px 14px; border-radius: 8px; margin-top: 14px;
+    font-family: var(--sans); font-size: 13px; border: 1px solid var(--border); background: var(--panel); color: var(--muted);
+  }
+  .note .ic { font-family: var(--mono); flex: none; }
+  .note.warn { border-color: rgba(229,192,123,.3); background: var(--yellow-soft); color: #e9d3a6; }
+  .note.warn .ic { color: var(--yellow); }
+  .note.err { border-color: rgba(224,108,117,.35); background: var(--red-soft); color: #f0b4b9; }
+  .note.err .ic { color: var(--red); }
+  .note.ok { border-color: rgba(127,216,143,.3); background: var(--green-soft); color: #bde8c5; }
+  .note.ok .ic { color: var(--green); }
+  .note b { color: var(--text); font-weight: 600; }
+  .note .btn { margin-left: auto; height: 28px; font-size: 12px; }
+
+  /* stats */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stat { padding: 14px 16px; }
+  .stat .num { font-size: 26px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+  .stat .cap { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .stat.good .num { color: var(--green); }
+  .stat.accent .num { color: var(--accent); }
+  .stat.warn .num { color: var(--yellow); }
+  .stat.zero .num { color: var(--dim); }
+
+  /* column chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font: inherit; font-size: 12px; cursor: pointer; padding: 8px 12px; border-radius: 6px;
+    border: 1px solid var(--border-strong); background: var(--panel); color: var(--muted);
+    display: inline-flex; gap: 10px; align-items: center;
+  }
+  .chip:hover { color: var(--text); border-color: var(--dim); }
+  .chip.on { border-color: var(--accent); color: var(--text); background: var(--accent-soft); }
+  .chip .mx { color: var(--dim); }
+  .chip.on .mx { color: var(--accent); }
+
+  .scale { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; margin-top: 12px; }
+  .scale b { color: var(--text); font-weight: 600; }
+
+  /* toggle */
+  .toggle { display: flex; align-items: center; gap: 12px; cursor: pointer; margin-top: 14px; padding: 12px 14px; }
+  .switch { width: 32px; height: 18px; border-radius: 10px; background: var(--border-strong); position: relative; flex: none; transition: background .15s; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+  .toggle.on .switch { background: var(--accent); }
+  .toggle.on .switch::after { transform: translateX(14px); background: var(--accent-ink); }
+  .toggle .t { font-family: var(--sans); font-size: 13px; }
+  .toggle .t small { display: block; color: var(--muted); font-size: 12px; }
+
+  /* tables */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: var(--dim); font-weight: 400; padding: 9px 14px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--panel); }
+  td { padding: 8px 14px; border-top: 1px solid var(--border); vertical-align: top; }
+  tr:first-child td { border-top: 0; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  td .sub { color: var(--dim); display: block; font-size: 11px; }
+  .tablebox { max-height: 300px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); user-select: text; }
+  .tag { font-size: 11px; padding: 1px 7px; border-radius: 4px; white-space: nowrap; border: 1px solid var(--border-strong); color: var(--muted); }
+  .tag.warn { color: var(--yellow); border-color: rgba(229,192,123,.3); }
+  .tag.err { color: var(--red); border-color: rgba(224,108,117,.35); }
+  .arrow-to { color: var(--dim); padding: 0 4px; }
+  .strong { color: var(--accent); font-weight: 600; }
+
+  /* waiting */
+  .spin { color: var(--accent); display: inline-block; width: 1.2em; }
+  .todo { margin: 18px 0 0; padding: 0; list-style: none; counter-reset: s; }
+  .todo li { counter-increment: s; display: flex; gap: 14px; padding: 12px 16px; border-top: 1px solid var(--border); font-family: var(--sans); font-size: 14px; }
+  .todo li:first-child { border-top: 0; }
+  .todo li::before { content: "0" counter(s); font-family: var(--mono); color: var(--accent); font-size: 12px; padding-top: 2px; }
+  .todo li small { display: block; color: var(--muted); font-size: 12px; }
+
+  /* progress */
+  .bar { height: 6px; border-radius: 6px; background: var(--el); overflow: hidden; margin: 18px 0 12px; border: 1px solid var(--border); }
+  .bar > i { display: block; height: 100%; background: var(--accent); transition: width .25s ease; }
+  .current { color: var(--muted); font-size: 12px; }
+  .current b { color: var(--text); font-weight: 400; }
+
+  .big-check { color: var(--green); }
+  .big-warn { color: var(--yellow); }
+
+  /* status bar */
+  footer {
+    flex: none; display: flex; align-items: center; gap: 18px; height: 30px; padding: 0 20px;
+    border-top: 1px solid var(--border); color: var(--dim); font-size: 11px;
+  }
+  footer .sp { flex: 1; }
+  footer a { color: var(--dim); cursor: pointer; text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+  footer .ph { color: var(--muted); }
+
+  .fade { animation: fade .18s ease-out; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand"><div class="glyph"></div><b>camis</b><span>marks</span></div>
+    <div class="pill" id="browser"><i class="dot"></i><span>browser closed</span></div>
+  </header>
+
+  <main><div class="wrap">
+    <div class="steps" id="steps"></div>
+    <div id="view"></div>
+  </div></main>
+
+  <footer>
+    <span class="ph" id="phase">ready</span>
+    <span class="sp"></span>
+    <a id="notif" onclick="call('toggle_notifications')" title="Windows notifications when marks are done or something needs you">notifications: on</a>
+    <a onclick="call('open_reports_folder')">reports folder ↗</a>
+    <a onclick="call('open_help')">help</a>
+    <span id="ver"></span>
+  </footer>
+
+<script>
+  let S = null;            // last state from Python
+  let spinTimer = null;
+
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : (many || one + "s")}`;
+
+  function call(name, ...args) {
+    if (!window.pywebview || !window.pywebview.api) return Promise.resolve();
+    return window.pywebview.api[name](...args).then((st) => { if (st && st.phase) render(st); return st; });
+  }
+
+  /* ------------------------------------------------------------------ */
+  function stepper(s) {
+    const order = { idle: 0, error: 0, waiting: 1, review: 2, filling: 2, done: 3 };
+    let at = order[s.phase] ?? 0;
+    if (s.phase === "idle" && s.file) at = 0;
+    const steps = [["01", "choose file"], ["02", "open camis page"], ["03", "fill marks"]];
+    return steps.map(([n, label], i) => {
+      const cls = i < at ? "done" : i === at ? "active" : "";
+      const mark = i < at ? "✓" : n;
+      return `<div class="step ${cls}"><span class="n">${mark}</span>${label}</div>`;
+    }).join('<div class="rule"></div>');
+  }
+
+  function viewIdle(s) {
+    if (s.loading) {
+      return `
+        <h1><span class="spin" id="spin">⠋</span>Reading the file…</h1>
+        <p class="lead">${esc(s.loading)}</p>`;
+    }
+    if (!s.file) {
+      let recent = "";
+      if (s.recent && s.recent.length) {
+        recent = `<div class="label">recent excel files</div><div class="list">` +
+          s.recent.map((r, i) => `
+            <div class="row click" onclick="call('use_recent', ${i})">
+              <span class="chev">▸</span><span class="grow">${esc(r.name)}</span>
+              <span class="meta">${esc(r.folder)} · ${esc(r.when)}</span>
+            </div>`).join("") + `</div>`;
+      }
+      return `
+        <h1>Fill CAMIS marks from your Excel sheet</h1>
+        <p class="lead">Choose the marks file you downloaded. The app types the marks into CAMIS for you.</p>
+        <div class="drop" onclick="call('pick_file')">
+          <div class="arrow">↓</div>
+          <div class="big">Drop the Excel file here</div>
+          <div class="small">or click to choose it · .xls / .xlsx</div>
+        </div>
+        ${s.fileError ? `<div class="note err"><span class="ic">✕</span><div>${esc(s.fileError)}</div></div>` : ""}
+        ${s.notice ? `<div class="note warn"><span class="ic">!</span><div>${esc(s.notice)}</div></div>` : ""}
+        ${recent}`;
+    }
+    const f = s.file;
+    const open = s.browser === "open";
+    return `
+      <h1>Ready to fill ${esc(f.subject || "marks")}</h1>
+      <p class="lead">Check this is the right file, then open the CAMIS page.</p>
+      <div class="panel card">
+        <div class="card-head">
+          <span class="name">${esc(f.name)}</span>
+          <button class="btn ghost" onclick="call('clear_file')">change</button>
+        </div>
+        <div class="kv">
+          ${f.subject ? `<span class="k">subject</span><span class="v">${esc(f.subject)}</span>` : ""}
+          ${f.klass ? `<span class="k">class</span><span class="v">${esc(f.klass)}</span>` : ""}
+          <span class="k">students</span><span class="v">${f.students}</span>
+          <span class="k">marks column</span><span class="v">${esc(f.column)}</span>
+        </div>
+      </div>
+      ${f.blanks ? `<div class="note"><span class="ic">i</span><div>${plural(f.blanks, "student has", "students have")} no mark in the file. They will get <b>0</b>.</div></div>` : ""}
+      ${s.notice ? `<div class="note warn"><span class="ic">!</span><div>${esc(s.notice)}</div></div>` : ""}
+      <div class="actions">
+        <button class="btn primary" data-primary onclick="call('start')">${open ? "Find the marks page" : "Open CAMIS"} <kbd>↵</kbd></button>
+      </div>
+      <div class="hint">${open
+        ? "In the browser, open the marks page for this class. The app continues on its own when it sees the table."
+        : "A browser window will open. Log in, then open the marks page for this class."}</div>`;
+  }
+
+  function viewWaiting(s) {
+    const subj = s.file && s.file.subject ? esc(s.file.subject) : "this class";
+    const same = s.waitSame ? `
+      <div class="note warn"><span class="ic">!</span>
+        <div>The browser still shows the class you just finished. Open the next class, or use this page if it's a different assessment.</div>
+        <button class="btn" onclick="call('use_current_page')">use this page</button>
+      </div>` : "";
+    return `
+      <h1><span class="spin" id="spin">⠋</span>${s.browser === "opening" ? "Opening the browser…" : "Waiting for the marks page"}</h1>
+      <p class="lead">Do these in the browser window. You don't need to come back here, the app moves on by itself.</p>
+      <div class="panel"><ol class="todo">
+        <li><div>Log in to CAMIS<small>Only the first time. The app remembers you.</small></div></li>
+        <li><div>Go to <b>Marks recording</b> and open <b>${subj}</b><small>Wait until you can see the list of students.</small></div></li>
+      </ol></div>
+      ${same}
+      ${s.found ? `<div class="note"><span class="ic">${"⠿"}</span><div>Found a table with ${plural(s.found, "student")}. Waiting for it to finish loading…</div></div>` : ""}
+      <div class="actions"><button class="btn" onclick="call('cancel')">cancel</button></div>`;
+  }
+
+  function viewReview(s) {
+    const r = s.review;
+    const cols = r.columns.length > 1 ? `
+      <div class="label">which assessment are you filling?</div>
+      <div class="chips">${r.columns.map((c) => `
+        <button class="chip ${c.i === r.selected ? "on" : ""}" onclick="call('select_column', ${c.i})">
+          ${esc(c.title)}<span class="mx">/${esc(c.max ?? "?")}</span></button>`).join("")}
+      </div>` : `<div class="label">assessment</div><div class="chips"><span class="chip on">${esc(r.columns[0].title)}<span class="mx">/${esc(r.columns[0].max ?? "?")}</span></span></div>`;
+
+    const scale = r.factor !== 1 ? `
+      <div class="scale">marks are converted: excel <b>/${esc(r.excelMax)}</b> <span class="arrow-to">→</span> camis <b>/${esc(r.siteMax)}</b> <span>(×${esc(r.factorText)})</span></div>` : "";
+
+    const low = r.lowMatch ? `
+      <div class="note warn"><span class="ic">!</span><div>Only <b>${r.matched}</b> of ${r.excelCount} students in the file were found on this page. Is the browser showing the right class?</div></div>` : "";
+
+    const conflicts = r.conflicts ? `
+      <div class="panel toggle ${r.overwrite ? "on" : ""}" onclick="call('set_overwrite', ${!r.overwrite})">
+        <span class="switch"></span>
+        <span class="t">Replace ${plural(r.conflicts, "mark")} that ${r.conflicts === 1 ? "is" : "are"} different in CAMIS
+          <small>${r.overwrite ? "CAMIS marks will be replaced with the ones in your file." : "Off: those students are left as they are and listed at the end."}</small></span>
+      </div>` : "";
+
+    const rows = r.preview.map((p) => `
+      <tr><td>${esc(p.name)}${p.note ? `<span class="sub">${esc(p.note)}</span>` : ""}</td>
+      <td class="num">${esc(p.before || "–")}<span class="arrow-to">→</span><span class="strong">${esc(p.mark)}</span></td></tr>`).join("");
+
+    const n = r.toEnter;
+    return `
+      <h1>Found ${plural(r.siteCount, "student")} on the page</h1>
+      <p class="lead">${r.matched} of ${r.excelCount} students in your file matched. Check the numbers, then fill.</p>
+      ${cols}
+      ${scale}
+      ${low}
+      <div class="label">what will happen</div>
+      <div class="stats">
+        <div class="panel stat ${n ? "accent" : "zero"}"><div class="num">${n}</div><div class="cap">marks to fill</div></div>
+        <div class="panel stat ${r.correct ? "good" : "zero"}"><div class="num">${r.correct}</div><div class="cap">already correct</div></div>
+        <div class="panel stat ${r.attention ? "warn" : "zero"}"><div class="num">${r.attention}</div><div class="cap">need you to check</div></div>
+      </div>
+      ${conflicts}
+      ${s.notice ? `<div class="note warn"><span class="ic">!</span><div>${esc(s.notice)}</div></div>` : ""}
+      <div class="actions">
+        ${n ? `<button class="btn primary" data-primary onclick="call('fill')">Fill ${plural(n, "mark")} <kbd>↵</kbd></button>`
+            : `<button class="btn primary" data-primary onclick="call('fill')">Show the report <kbd>↵</kbd></button>`}
+        <button class="btn" onclick="call('rescan')">read the page again</button>
+        <button class="btn ghost" onclick="call('next_file')">cancel</button>
+      </div>
+      <div class="hint">Marks are typed into the browser and saved. Please don't use the browser while it works.</div>
+      ${rows ? `<div class="label">preview</div><div class="tablebox"><table>
+        <thead><tr><th>student on camis</th><th class="num">now → new</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>` : ""}`;
+  }
+
+  function viewFilling(s) {
+    const p = s.progress || { done: 0, total: 0 };
+    const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
+    const label = p.saving ? "Saving in CAMIS…" : `Typing marks… ${p.done} / ${p.total}`;
+    return `
+      <h1><span class="spin" id="spin">⠋</span>${label}</h1>
+      <p class="lead">Please don't click in the browser until this finishes.</p>
+      <div class="bar"><i style="width:${p.saving ? 100 : pct}%"></i></div>
+      ${p.current ? `<div class="current">now: <b>${esc(p.current)}</b></div>` : ""}
+      <div class="actions"><button class="btn" onclick="call('stop')" ${p.saving ? "disabled" : ""}>stop</button></div>`;
+  }
+
+  function viewDone(s) {
+    const r = s.result;
+    const att = r.attention.map((a) => `
+      <tr>
+        <td>${esc(a.name)}${a.id ? `<span class="sub">${esc(a.id)}</span>` : ""}</td>
+        <td class="num"><span class="strong">${esc(a.mark || "–")}</span></td>
+        <td><span class="tag ${a.level}">${esc(a.why)}</span>${a.detail ? `<span class="sub">${esc(a.detail)}</span>` : ""}</td>
+      </tr>`).join("");
+
+    let head, note = "";
+    if (r.saveState === "ok") {
+      head = `<span class="big-check">✓</span> ${plural(r.entered, "mark")} filled and saved`;
+      note = `<div class="note ok"><span class="ic">✓</span><div>Saved in CAMIS. Have a quick look in the browser and submit when you're happy.</div></div>`;
+    } else if (r.saveState === "none") {
+      head = r.attention.length ? "Nothing new to fill" : `<span class="big-check">✓</span> Everything is already correct`;
+    } else if (r.saveState === "stopped") {
+      head = `<span class="big-warn">■</span> Stopped`;
+      note = `<div class="note warn"><span class="ic">!</span><div>Nothing was saved. Reload the CAMIS page to throw away the typed marks, or click <b>Save</b> in CAMIS to keep them.</div></div>`;
+    } else {
+      head = `<span class="big-warn">!</span> ${plural(r.entered, "mark")} typed, saving not confirmed`;
+      note = `<div class="note warn"><span class="ic">!</span><div>${esc(r.saveDetail)}. Please click <b>Save</b> in the CAMIS page yourself.</div></div>`;
+    }
+
+    return `
+      <h1>${head}</h1>
+      <p class="lead">${esc(r.title)}</p>
+      <div class="stats">
+        <div class="panel stat ${r.entered ? "good" : "zero"}"><div class="num">${r.entered}</div><div class="cap">filled now</div></div>
+        <div class="panel stat ${r.correct ? "good" : "zero"}"><div class="num">${r.correct}</div><div class="cap">already correct</div></div>
+        <div class="panel stat ${r.attention.length ? "warn" : "zero"}"><div class="num">${r.attention.length}</div><div class="cap">need you to check</div></div>
+      </div>
+      ${note}
+      ${att ? `<div class="label">please do these by hand in camis</div>
+        <div class="tablebox"><table>
+          <thead><tr><th>student</th><th class="num">camis mark</th><th>why</th></tr></thead>
+          <tbody>${att}</tbody></table></div>` : ""}
+      <div class="actions">
+        <button class="btn primary" data-primary onclick="call('next_file')">Fill another file <kbd>↵</kbd></button>
+        <button class="btn" onclick="call('open_report')">open full report</button>
+      </div>`;
+  }
+
+  function viewError(s) {
+    return `
+      <h1>Something went wrong</h1>
+      <p class="lead">The browser was left open, so you can finish by hand if you need to.</p>
+      <div class="note err"><span class="ic">✕</span><div style="white-space:pre-wrap">${esc(s.error)}</div></div>
+      <div class="actions"><button class="btn primary" data-primary onclick="call('dismiss')">Try again <kbd>↵</kbd></button></div>`;
+  }
+
+  /* ------------------------------------------------------------------ */
+  const PHASE_TEXT = { idle: "ready", waiting: "waiting for camis", review: "check before filling", filling: "filling marks", done: "finished", error: "error" };
+
+  function render(s) {
+    const prev = S;
+    S = s;
+    const b = document.getElementById("browser");
+    const bState = { closed: ["", "browser closed"], opening: ["busy", "opening browser…"], open: ["on", "browser open"] }[s.browser] || ["", s.browser];
+    b.innerHTML = `<i class="dot ${bState[0]}"></i><span>${bState[1]}</span>`;
+    document.getElementById("phase").textContent = PHASE_TEXT[s.phase] || s.phase;
+    document.getElementById("ver").textContent = s.version ? "v" + s.version : "";
+    document.getElementById("notif").textContent = "notifications: " + (s.notifications === false ? "off" : "on");
+    document.getElementById("steps").innerHTML = stepper(s);
+
+    const view = document.getElementById("view");
+    const fn = { idle: viewIdle, waiting: viewWaiting, review: viewReview, filling: viewFilling, done: viewDone, error: viewError }[s.phase] || viewIdle;
+    const scroller = document.querySelector("main");
+    const keepScroll = prev && prev.phase === s.phase;
+    const top = scroller.scrollTop;
+    view.innerHTML = `<div class="${keepScroll || !prev ? "" : "fade"}">${fn(s)}</div>`;
+    if (keepScroll) scroller.scrollTop = top; else scroller.scrollTop = 0;
+    setSpinner();
+  }
+
+  function setSpinner() {
+    const frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
+    if (spinTimer) return;
+    let i = 0;
+    spinTimer = setInterval(() => {
+      const el = document.getElementById("spin");
+      if (el) el.textContent = frames[(i = (i + 1) % frames.length)];
+    }, 80);
+  }
+
+  /* drag visuals (the actual file path comes through Python) */
+  let dragDepth = 0;
+  document.addEventListener("dragenter", (e) => { e.preventDefault(); dragDepth++; document.body.classList.add("dragging"); });
+  document.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove("dragging"); } });
+  document.addEventListener("dragover", (e) => e.preventDefault());
+  document.addEventListener("drop", (e) => { e.preventDefault(); dragDepth = 0; document.body.classList.remove("dragging"); });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const btn = document.querySelector("[data-primary]");
+      if (btn) { e.preventDefault(); btn.click(); }
+    }
+  });
+
+  window.addEventListener("pywebviewready", () => call("get_state"));
+</script>
+</body>
+</html>
