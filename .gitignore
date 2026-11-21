@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Build output
+build/
+dist/
+installer/Output/
+*.spec
+
+# Private data: never commit student marks, reports or browser logins
+*.xls
+*.xlsx
+*.xlsm
+*.csv
+camis-report-*
+reports/
+.camis-profile/
+browser-profile/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
