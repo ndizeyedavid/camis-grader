@@ -1,0 +1,111 @@
+name: Release
+
+# Publishes a Windows release whenever CHANGELOG.md on main gains a new version.
+on:
+  push:
+    branches: [main]
+    paths: [CHANGELOG.md]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+      release: ${{ steps.check.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read latest version from CHANGELOG.md
+        id: read
+        run: |
+          version=$(grep -m1 -oP '^## \[\K[0-9]+\.[0-9]+\.[0-9]+(?=\])' CHANGELOG.md || true)
+          if [ -z "$version" ]; then
+            echo "No version heading like '## [1.2.3]' found in CHANGELOG.md" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Latest version: $version"
+
+      - name: Skip if this version is already released
+        id: check
+        run: |
+          if git rev-parse "v${{ steps.read.outputs.version }}" >/dev/null 2>&1; then
+            echo "Tag v${{ steps.read.outputs.version }} already exists, nothing to release."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: version
+    if: needs.version.outputs.release == 'true'
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements-build.txt
+
+      - name: Stamp version into the app
+        shell: pwsh
+        run: |
+          (Get-Content app.py -Raw) -replace 'APP_VERSION = "[^"]*"', "APP_VERSION = `"$env:VERSION`"" |
+            Set-Content app.py -Encoding utf8
+
+      - name: Build app
+        run: python build_exe.py
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" installer\camis-marks.iss
+
+      - name: Zip portable version
+        shell: pwsh
+        run: Compress-Archive -Path "dist\CAMIS Marks" -DestinationPath "installer\Output\CAMIS-Marks-Portable-$env:VERSION.zip"
+
+      - name: Extract release notes
+        shell: pwsh
+        run: |
+          $lines = Get-Content CHANGELOG.md
+          $start = ($lines | Select-String -Pattern "^## \[$([regex]::Escape($env:VERSION))\]").LineNumber
+          $notes = @()
+          for ($i = $start; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match '^## \[') { break }
+            $notes += $lines[$i]
+          }
+          $notes += ""
+          $notes += "### Download"
+          $notes += "- **CAMIS-Marks-Setup-$env:VERSION.exe**: installer (recommended). No admin rights needed."
+          $notes += "- **CAMIS-Marks-Portable-$env:VERSION.zip**: unzip and run ``CAMIS Marks.exe``."
+          $notes += ""
+          $notes += "Requires Windows 10 or 11 with Google Chrome or Microsoft Edge."
+          $notes -join "`n" | Set-Content release-notes.md -Encoding utf8
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: CAMIS Marks ${{ env.VERSION }}
+          body_path: release-notes.md
+          target_commitish: ${{ github.sha }}
+          files: |
+            installer/Output/CAMIS-Marks-Setup-${{ env.VERSION }}.exe
+            installer/Output/CAMIS-Marks-Portable-${{ env.VERSION }}.zip
