@@ -1,0 +1,54 @@
+CAMIS Marks - how to use
+========================
+
+This app copies the marks from your Excel file into CAMIS for you.
+You need Google Chrome or Microsoft Edge on the computer (Edge is on every
+Windows 10/11 PC) and an internet connection.
+
+
+THE 3 STEPS
+-----------
+1. CHOOSE THE FILE
+   Drop your Excel marks file on the app, click to choose it, or click one of
+   the recent files the app shows you.
+
+2. OPEN CAMIS
+   Click "Open CAMIS". A browser window opens.
+   - Log in (only the first time - the app remembers you).
+   - Go to Marks recording and open the class and assessment.
+   The app notices the student list by itself.
+
+3. FILL MARKS
+   The app shows what it will do. If the page has more than one assessment,
+   click the right one. Then click "Fill marks". Don't touch the browser while
+   it types. It saves when it finishes.
+
+Then look over the marks in CAMIS and submit them when you are happy.
+For the next class, click "Fill another file". The browser stays open.
+
+
+GOOD TO KNOW
+------------
+- Marks are converted for you. Example: a mark out of 100 in Excel goes into
+  a CAMIS column out of 80 as mark x 0.8.
+- An empty mark in Excel is entered as 0.
+- If CAMIS already has a DIFFERENT mark for a student, the app leaves it alone
+  unless you switch on "Replace marks that are different in CAMIS".
+- Students the app could not fill are listed at the end with the exact mark to
+  type. Do these few by hand.
+- You don't have to watch the app. A Windows notification pops up (and the
+  app's taskbar button blinks) when the marks page is found, when the marks
+  are done, or when something needs you. Turn them off with
+  "notifications: on" at the bottom of the app.
+- Every run saves a report in Documents\CAMIS Reports
+  (click "reports folder" at the bottom of the app).
+
+
+IF SOMETHING GOES WRONG
+-----------------------
+- "Could not open a browser": install Google Chrome or Microsoft Edge.
+- "Only a few students matched": the browser is showing a different class.
+  Open the right class and click "read the page again".
+- The browser window was closed by mistake: just click the button again.
+- Nothing helps: close the app and open it again. A log for whoever helps you
+  is in %LOCALAPPDATA%\CAMIS Marks\app.log
